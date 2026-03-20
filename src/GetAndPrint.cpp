@@ -30,15 +30,18 @@ std::vector<std::string> GetAndPrint::getfilenames() {
 	std::stable_partition(files.begin(), files.end(), [](const std::string& s) { return fs::is_directory(fs::current_path() / s); });
 	return files;
 }
-void GetAndPrint::copySelected() {
+void GetAndPrint::copySelected(bool show) {
+	size_t& selected = tabs[currenttab].selectedIndex;
 	auto filenames = getfilenames();
 	filenames.insert(filenames.begin(), "..");
 	if (selected >= filenames.size() || filenames[selected] == "..") return;
 	clipboardPath = fs::current_path() / filenames[selected];
 	hasClipboard = true;
-	std::cout << "\033[H\033[J";
-	std::cout << "Copied: " << clipboardPath.filename().string() << "\nPress any key...";
-	readKey();
+	if (show) {
+		std::cout << "\033[H\033[J";
+		std::cout << "Copied: " << clipboardPath.filename().string() << "\nPress any key...";
+		readKey();
+	}
 }
 void GetAndPrint::pasteClipboard() {
 	if (!hasClipboard || !fs::exists(clipboardPath)) return;
@@ -59,18 +62,21 @@ void GetAndPrint::pasteClipboard() {
 	}
 }
 void GetAndPrint::closeCurrentTab() {
-	std::cout << "\033[H\033[J";
-	if (tabs.empty()) return;
-	tabs.erase(tabs.begin() + currenttab);
-	if (tabs.empty()) {
-		currenttab = 0;
+	if (tabs.size() <= 1) {
+		std::cout << "\033[H\033[J";
+		std::cout << "Cannot close the last remaining tab!" << std::endl;
+		std::cout << "Press any key to continue...";
+		readKey();
 		return;
 	}
+	std::cout << "\033[H\033[J";
+	tabs.erase(tabs.begin() + currenttab);
 	if (currenttab >= (int)tabs.size()) {
 		currenttab = (int)tabs.size() - 1;
 	}
 	fs::current_path(tabs[currenttab].pathoftab);
 }
+
 void GetAndPrint::switchTab(int tabIndex) {
 	std::cout << "\033[H\033[J";
 	if (tabIndex < 0 || tabIndex >= (int)tabs.size()) return;
@@ -86,6 +92,7 @@ void GetAndPrint::addTab(const fs::path& p) {
 	fs::current_path(p);
 }
 void GetAndPrint::renameSelected() {
+	size_t& selected = tabs[currenttab].selectedIndex;
 	std::vector<std::string> filenames = getfilenames();
 	filenames.insert(filenames.begin(), "..");
 	if (selected >= filenames.size() || filenames[selected] == "..") return;
@@ -106,18 +113,16 @@ void GetAndPrint::renameSelected() {
 	}
 }
 void GetAndPrint::deleteSelected() {
+	size_t& selected = tabs[currenttab].selectedIndex;
 	auto filenames = getfilenames();
 	filenames.insert(filenames.begin(), "..");
-	if (selected >= filenames.size() || filenames[selected] == "..") return;
+	if (selected >= filenames.size() || filenames[selected] == "..") {
+		return;
+	}
 	fs::path target = fs::current_path() / filenames[selected];
 	std::cout << "\033[H\033[J";
 	std::cout << "ARE YOU SURE? Delete: " << filenames[selected] << " [y/N]: ";
-	int confirm =
-#ifdef _WIN32
-		readKey();
-#else
-		readKey();
-#endif
+	int confirm = readKey();
 	if (confirm == 'y' || confirm == 'Y') {
 		try {
 			fs::remove_all(target);
@@ -125,11 +130,7 @@ void GetAndPrint::deleteSelected() {
 		}
 		catch (const fs::filesystem_error& e) {
 			std::cout << "\nError: " << e.what() << "\nPress any key...";
-#ifdef _WIN32
 			readKey();
-#else
-			readKey();
-#endif
 		}
 	}
 }
@@ -154,6 +155,16 @@ void GetAndPrint::createNew(bool isFolder) {
 	}
 }
 void GetAndPrint::handleInput() {
+	std::vector<std::string> asciiart = {
+		".____.------.",
+		"| explr     |",
+		"| by: ladsm |",
+		"| 1.0       |",
+		"`-----------'",
+		"Press any key..."
+	};
+	int startRow = 0;
+	int startCol = 0;
 	InputType Input = GetPlayerInput();
 	switch (Input) {
 	case InputType::E:
@@ -191,7 +202,7 @@ void GetAndPrint::handleInput() {
 		renameSelected();
 		break;
 	case InputType::D:
-		copySelected();
+		copySelected(false);
 		deleteSelected();
 		break;
 	case InputType::n:
@@ -201,7 +212,7 @@ void GetAndPrint::handleInput() {
 		createNew(true);
 		break;
 	case InputType::C:
-		copySelected();
+		copySelected(true);
 		break;
 	case InputType::P:
 		pasteClipboard();
@@ -214,11 +225,14 @@ void GetAndPrint::handleInput() {
 		break;
 	case InputType::V:
 		std::cout << "\033[H\033[J";
-		std::cout << ".____.------.\n";
-		std::cout << "|   explr   |\n";
-		std::cout << "| by: ladsm |\n";
-		std::cout << "|    1.0    |\n";
-		std::cout << "`-----------'\n";
+		startRow = (getConsoleHeight() / 2) - ((int)asciiart.size() / 2);
+		startCol = (getConsoleWidth() / 2) - ((int)asciiart[0].size() / 2);
+
+		for (int i = 0; i < startRow; i++) std::cout << '\n';
+
+		for (const std::string& line : asciiart) {
+			std::cout << std::string(startCol, ' ') << line << '\n';
+		}
 		readKey();
 		break;
 	case InputType::Enter: {
@@ -289,7 +303,7 @@ void GetAndPrint::print() {
 	fs::path full_path = fs::current_path();
 	int termHeight = getConsoleHeight();
 	buffer << "\033[7m"
-		<< "[Arrows]: Nav  | [Enter]: Open   | [R]: Rename | [D]: Delete  | [C]: Copy    |   [P]: Paste\n"
+		<< "[Arrows]: Nav  | [Enter]: Open   | [R]: Rename | [D]: Delete  | [C]: Copy    |   [P]: Paste      |               \n"
 		<< "     [n]: File |     [N]: Folder | [Q]: exit   | [V]: Version | [E]: New Tab | [1-9]: Switch Tab | [T]: Close Tab\033[0m\033[K" << std::endl;
 	std::vector<std::string> filenames = getfilenames();
 	filenames.insert(filenames.begin(), "..");

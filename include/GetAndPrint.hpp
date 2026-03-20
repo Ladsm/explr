@@ -16,14 +16,13 @@ class GetAndPrint {
 	std::vector<std::string> getfilenames();
 	std::vector<tab> tabs;
 	int currenttab = 0;
-	int selected = 0;
 	fs::path clipboardPath;
 	bool hasClipboard = false;
 	void renameSelected();
 	void deleteSelected();
 	void createNew(bool isFolder);
 	void printStatusBar(const std::vector<std::string>& filenames);
-	void copySelected();
+	void copySelected(bool show);
 	void pasteClipboard();
 	void closeCurrentTab();
 	void switchTab(int tabIndex);
