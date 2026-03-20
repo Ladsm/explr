@@ -25,7 +25,8 @@ enum class InputType {
     Q,
     C,
     P,
-    V
+    V,
+    T
 };
 InputType GetPlayerInput();
 int readKey();

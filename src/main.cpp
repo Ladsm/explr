@@ -10,9 +10,10 @@ namespace fs = std::filesystem;
 
 int main(int argc, char *argv[]) {
 	init();
+	gap.addTab(fs::current_path());
 	while (true) {
 		gap.print();
-		gap.handleInput(gap.getThingToDo());
+		gap.handleInput();
 	}
 	return 0;
 }

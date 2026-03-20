@@ -64,6 +64,8 @@ InputType GetPlayerInput() {
     case 'c': case 'C': return InputType::C;
     case 'p': case 'P': return InputType::P;
     case 'v': case 'V': return InputType::V;
+    case 'e': case 'E': return InputType::E;
+    case 't': case 'T': return InputType::T;
     case 'n': return InputType::n;
     case 'N': return InputType::N;
     }
