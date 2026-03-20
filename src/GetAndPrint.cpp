@@ -206,6 +206,12 @@ void GetAndPrint::handleInput() {
 	case InputType::P:
 		pasteClipboard();
 		break;
+	case InputType::Q:
+		lastpath = fs::current_path().string();
+		std::cout << "\033[?1049l\033[?25h" << lastpath;
+		std::cout.flush();
+		std::exit(0);
+		break;
 	case InputType::V:
 		std::cout << "\033[H\033[J";
 		std::cout << ".____.------.\n";
@@ -284,7 +290,7 @@ void GetAndPrint::print() {
 	int termHeight = getConsoleHeight();
 	buffer << "\033[7m"
 		<< "[Arrows]: Nav  | [Enter]: Open   | [R]: Rename | [D]: Delete  | [C]: Copy    |   [P]: Paste\n"
-		<< "     [n]: File | [    N]: Folder | [Q]: exit   | [V]: Version | [E]: New Tab | [1-9]: Switch Tab\033[0m\033[K" << std::endl;
+		<< "     [n]: File |     [N]: Folder | [Q]: exit   | [V]: Version | [E]: New Tab | [1-9]: Switch Tab | [T]: Close Tab\033[0m\033[K" << std::endl;
 	std::vector<std::string> filenames = getfilenames();
 	filenames.insert(filenames.begin(), "..");
 	int reservedLines = 5;
