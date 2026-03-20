@@ -10,6 +10,7 @@
 #include <fstream>
 #include <algorithm>
 #include <sstream>
+#include <set>
 #ifdef min
 #undef min
 #endif
@@ -321,7 +322,8 @@ void GetAndPrint::print() {
 		std::string prefix = (i == filenames.size() - 1) ? "└── " : "├── ";
 		fs::path entry_path = full_path / filenames[i];
 		bool isDir = fs::is_directory(entry_path);
-		bool isExe = entry_path.extension() == ".exe";
+		static const std::set<std::string> exeExtensions = { ".exe", ".cmd", ".sh", ".ps1", ".bat" };
+		bool isExe = exeExtensions.count(entry_path.extension().string());
 		std::string displayName = filenames[i] + (isDir ? "/" : "");
 		buffer << prefix;
 		if (i == selected) {
