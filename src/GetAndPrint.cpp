@@ -9,7 +9,7 @@
 #include <iomanip>
 #include <fstream>
 #include <algorithm>
-
+#include <sstream>
 #ifdef min
 #undef min
 #endif
@@ -257,12 +257,13 @@ void GetAndPrint::printStatusBar(const std::vector<std::string>& filenames) {
 }
 
 void GetAndPrint::print() {
-    std::cout << "\033[2J\033[H";
+    std::stringstream buffer;
+    std::cout << "\033[H";
     fs::path full_path = fs::current_path();
     int termHeight = getConsoleHeight();
-    std::cout << "\033[7m" 
-              << "[Arrows]: Nav | [Enter]: Open | [R]: Rename | [D]: Delete | [C]: Copy | [P]: Paste\n"
-              << "    [n]: File | [N]: Folder   | [Q]: exit   | [V]: Version \033[0m\033[K" << std::endl;
+    buffer << "\033[7m"
+              << "[Arrows]: Nav  | [Enter]: Open   | [R]: Rename | [D]: Delete | [C]: Copy | [P]: Paste\n"
+              << "     [n]: File | [N]    : Folder | [Q]: exit   | [V]: Version \033[0m\033[K" << std::endl;
     std::vector<std::string> filenames = getfilenames();
     filenames.insert(filenames.begin(), "..");
     int reservedLines = 5;
@@ -281,35 +282,36 @@ void GetAndPrint::print() {
         bool isDir = fs::is_directory(entry_path);
         bool isExe = entry_path.extension() == ".exe";
         std::string displayName = filenames[i] + (isDir ? "/" : "");
-        std::cout << prefix;
+        buffer << prefix;
         if (i == selected) {
-            std::cout << "\033[47;30m" << displayName << "\033[0m";
+            buffer << "\033[47;30m" << displayName << "\033[0m";
         }
         else if (isDir) {
-            std::cout << "\033[1;34m" << displayName << "\033[0m";
+            buffer << "\033[1;34m" << displayName << "\033[0m";
         }
         else if (isExe) {
-            std::cout << "\033[32m" << displayName << "\033[0m";
+            buffer << "\033[32m" << displayName << "\033[0m";
         }
         else {
-            std::cout << displayName;
+            buffer << displayName;
         }
-        std::cout << "\033[K\n";
+        buffer << "\033[K\n";
     }
     int linesDrawn = (int)(endIndex - startIndex);
     for (int i = linesDrawn; i < maxDisplay; ++i) {
-        std::cout << "\n";
+        buffer << "\n";
     }
     if (selected < filenames.size()) {
         fs::path selectedPath = full_path / filenames[selected];
-        std::cout << "\033[7m [Selected: " << filenames[selected];
+        buffer << "\033[7m [Selected: " << filenames[selected];
         if (fs::exists(selectedPath) && fs::is_regular_file(selectedPath)) {
             auto size = fs::file_size(selectedPath) / 1024;
-            std::cout << " | Size: " << size << " KB";
+            buffer << " | Size: " << size << " KB";
         }
         else {
-            std::cout << " | Type: Directory";
+            buffer << " | Type: Directory";
         }
-        std::cout << " ]\033[0m\033[K" << std::flush;
+        buffer << " ]\033[0m\033[K" << std::flush;
     }
+    std::cout << buffer.str() << std::flush;
 }
